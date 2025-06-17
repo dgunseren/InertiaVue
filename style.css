@@ -1,0 +1,14 @@
+canvas {
+  border: 1px solid black;
+  cursor: crosshair;
+  display: block;
+}
+
+body {
+  font-family: sans-serif;
+  padding: 10px;
+}
+
+button {
+  margin: 5px;
+}
