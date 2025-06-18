@@ -2,7 +2,10 @@
     <div class="button-container">
       <button class="OutShape-button" @click="setMode('outside')">Outside Shape</button>
       <button class="InsideShape-button" @click="setMode('inside')">Inside Shape</button>
-      <button class="Calculate-button" @click="concludeCurrentShape">Finish All</button>
+      <button class="Calculate-button" @click="concludeCurrentShape">Finish Current Shape</button>
+    </div>
+    <div class="mode-display">
+      Current Mode: <span class="mode-text">{{ currentShapeType }}</span>
     </div>
     <canvas 
       ref="canvas" 
@@ -24,7 +27,7 @@ export default {
 
   data() {
     return {
-      currentShapeType: null,
+      currentShapeType: 'outside',
       scale: 1.0,
       lines: [],
       shapes: [],
@@ -249,8 +252,6 @@ export default {
     },
     setMode(type) {
       this.currentShapeType = type
-      this.shapeCounter++
-      //this.shapeStore.CreateShape(this.shapeCounter, this.currentShapeType)
       this.initializeNewShape(this.currentShapeType)
     }
   }
@@ -385,5 +386,24 @@ export default {
 .input-field::-ms-input-placeholder {
   color: #999;
   opacity: 1;
+}
+
+.mode-display {
+  position: fixed;
+  top: 80px;
+  left: 20px;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 10px 15px;
+  border-radius: 8px;
+  border: 2px solid #007bff;
+  font-size: 16px;
+  font-weight: bold;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.mode-text {
+  color: #007bff;
+  text-transform: capitalize;
 }
 </style> 
