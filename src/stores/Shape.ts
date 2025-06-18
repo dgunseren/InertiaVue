@@ -9,7 +9,7 @@ type Shape = {
   lineList: Line[]
   PointList: Point[]
   finalPoint: Point | null
-  type: string
+  currentMode: string
 }
 
 // === Pinia Store ===
@@ -19,6 +19,7 @@ export const useShapeStore = defineStore('shape', () => {
   const lineList = ref<Line[]>([])
   const PointList = ref<Point[]>([])
   const finalPoint = ref<Point | null>(null)
+  const currentMode = ref<string>('')
 
   // === Getters ===
   const getShapes = computed(() => shapeList.value)
@@ -34,7 +35,7 @@ export const useShapeStore = defineStore('shape', () => {
       lineList: [],
       PointList: [],
       finalPoint: null,
-      type: place,
+      currentMode: place,
     })
   }
   console.log('YO G STORE HERE')
@@ -63,6 +64,15 @@ export const useShapeStore = defineStore('shape', () => {
     const shape = shapeList.value.find(s => s.id === id)
     return shape?.type ?? null
   }
+  function getPointsOfShape(shapeID: number): Point[] {
+    const shape = shapeList.value.find(s => s.id === shapeID)
+    return shape?.PointList ?? []
+  }
+
+    function getLinesOfShape(shapeID: number): Line[] {
+    const shape = shapeList.value.find(s => s.id === shapeID)
+    return shape?.lineList ?? []
+  }
 
   return {
     // State
@@ -70,6 +80,7 @@ export const useShapeStore = defineStore('shape', () => {
     lineList,
     PointList,
     finalPoint,
+    currentMode,
 
     // Getters
     getShapes,
@@ -83,6 +94,8 @@ export const useShapeStore = defineStore('shape', () => {
     addPoint,
     addFinalPoint,
     getFinalPointOfShape,
-    getShapeTypeById
+    getShapeTypeById,
+    getPointsOfShape,
+    getLinesOfShape
   }
 })

@@ -1,7 +1,7 @@
 <template>
     <div class="button-container">
-      <button class="OutShape-button" @click="initializeNewShape('outside')">Outside Shape</button>
-      <button class="InsideShape-button" @click="initializeNewShape('inside')">Inside Shape</button>
+      <button class="OutShape-button" @click="setMode('outside')">Outside Shape</button>
+      <button class="InsideShape-button" @click="setMode('inside')">Inside Shape</button>
       <button class="Calculate-button" @click="concludeCurrentShape">Finish All</button>
     </div>
     <canvas 
@@ -87,9 +87,9 @@ export default {
   methods: {
     initializeNewShape(type) {
       // Conclude current shape if one is in progress
-      if (this.isDrawing) {
-        this.concludeCurrentShape()
-      }
+      //if (this.isDrawing) {
+      this.concludeCurrentShape()
+      //}
       
       // Reset drawing state
       this.isDrawing = false
@@ -100,13 +100,15 @@ export default {
       this.currentShapeType = type
       this.shapeCounter++
       
-      // Create new shape in store
-      this.shapeStore.CreateShape(this.shapeCounter, type)
+      // Create new shape in store with current mode
+      //this.shapeStore.CreateShape(this.shapeCounter, this.currentShapeType)
     },
 
     concludeCurrentShape() {
       if (this.isDrawing && this.startPoint && this.currentEnd) {
         const currentStartPoint = this.shapeStore.getFinalPointOfShape(this.shapeCounter)
+
+
         if (currentStartPoint) {
           this.shapeStore.addPoint(this.shapeCounter, this.currentEnd)
           this.shapeStore.addLine(this.shapeCounter, {
@@ -116,7 +118,16 @@ export default {
           this.shapeStore.addFinalPoint(this.shapeCounter, this.currentEnd)
         }
       }
+      const points = this.shapeStore.getPointsOfShape(this.shapeCounter)
+      const FPofShape = points.length > 0 ? points[0] : null
+      const LPOfShape = points.length > 0 ? points[points.length - 1] : null
+      console.log('Points:', FPofShape)
       
+      this.shapeStore.addLine(this.shapeCounter, {
+            start: FPofShape,
+            end: LPOfShape
+          })
+      console.log('Lines:', this.shapeStore.getLinesOfShape(this.shapeCounter))
       // Reset drawing state
       this.isDrawing = false
       this.startPoint = null
@@ -165,6 +176,9 @@ export default {
       const y = (event.clientY - rect.top) / this.scale
 
       if (!this.startPoint) {
+        // Create a new shape when starting to draw
+        //this.shapeCounter++
+        this.shapeStore.CreateShape(this.shapeCounter, this.currentShapeType)
         this.startPoint = { x, y }
         this.shapeStore.addPoint(this.shapeCounter, this.startPoint)
         this.shapeStore.addFinalPoint(this.shapeCounter, this.startPoint)
@@ -233,10 +247,12 @@ export default {
       ctx.font = '14px sans-serif'
       ctx.fillText((length / 10).toFixed(2) + ' units', midX * this.scale + 5, midY * this.scale - 5)
     },
-
-    
-
-
+    setMode(type) {
+      this.currentShapeType = type
+      this.shapeCounter++
+      //this.shapeStore.CreateShape(this.shapeCounter, this.currentShapeType)
+      this.initializeNewShape(this.currentShapeType)
+    }
   }
 
 }
