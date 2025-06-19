@@ -1,16 +1,8 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 
-// === Types ===
-type Point = { x: number; y: number }
-type Line = { start: Point; end: Point }
-type Shape = {
-  id: number
-  lineList: Line[]
-  PointList: Point[]
-  finalPoint: Point | null
-  currentMode: string
-}
+import type { Point, Line, Shape } from '../types/geometry.ts'
+
 
 // === Pinia Store ===
 export const useShapeStore = defineStore('shape', () => {

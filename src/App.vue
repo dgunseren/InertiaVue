@@ -3,9 +3,14 @@
       <button class="OutShape-button" @click="setMode('outside')">Outside Shape</button>
       <button class="InsideShape-button" @click="setMode('inside')">Inside Shape</button>
       <button class="Calculate-button" @click="concludeCurrentShape">Finish Current Shape</button>
+      <button class="Proceed-button" @click="proceedCalculation">Proceed Calculation</button>
     </div>
     <div class="mode-display">
       Current Mode: <span class="mode-text">{{ currentShapeType }}</span>
+    </div>
+    <div class="cursor-position">
+      Screen: {{ cursor.x }}, {{ cursor.y }}<br>
+      Canvas: {{ cursor.relX.toFixed(0) }}, {{ cursor.relY.toFixed(0) }}
     </div>
     <canvas 
       ref="canvas" 
@@ -18,9 +23,12 @@
 
 <script>
 import { ref, computed, reactive, watch } from "vue";
-
 import { useShapeStore } from './stores/Shape'
+import { generateGridInsideShape,makeItList } from './utils/grid.ts'
+import { calculateInertia,calculateRotationCenter } from './utils/inertia.ts'
+//import type { Point, Line, Shape, Polygon } from './types/geometry.ts'
 
+import * as gridUtils from './utils/grid.ts'
 
 export default {
 
@@ -59,7 +67,8 @@ export default {
       hoveredShape: null,
       prevPoint: null,
       ctx: null,
-      shapeStore: null
+      shapeStore: null,
+      cursor: { x: 0, y: 0, relX: 0, relY: 0 }
     }
   },
   created() {
@@ -74,7 +83,7 @@ export default {
     canvas.addEventListener('mouseup', this.stopDrawing)
     canvas.addEventListener('mouseleave', this.stopDrawing)
     canvas.addEventListener('wheel', this.handleZoom)
-
+    window.addEventListener('mousemove', this.updateCursor)
   },
   beforeUnmount() {
     // Clean up event listeners
@@ -86,6 +95,7 @@ export default {
     canvas.removeEventListener('mousemove', this.handleMouseMove)
     canvas.removeEventListener('mouseup', this.stopDrawing)
     canvas.removeEventListener('mouseleave', this.stopDrawing)
+    window.removeEventListener('mousemove', this.updateCursor)
   },
   methods: {
     initializeNewShape(type) {
@@ -101,7 +111,7 @@ export default {
       
       // Set new shape type and increment counter
       this.currentShapeType = type
-      this.shapeCounter++
+      //this.shapeCounter++
       
       // Create new shape in store with current mode
       //this.shapeStore.CreateShape(this.shapeCounter, this.currentShapeType)
@@ -180,7 +190,7 @@ export default {
 
       if (!this.startPoint) {
         // Create a new shape when starting to draw
-        //this.shapeCounter++
+        this.shapeCounter++
         this.shapeStore.CreateShape(this.shapeCounter, this.currentShapeType)
         this.startPoint = { x, y }
         this.shapeStore.addPoint(this.shapeCounter, this.startPoint)
@@ -196,8 +206,8 @@ export default {
         if (currentStartPoint) {
           this.shapeStore.addPoint(this.shapeCounter, this.currentEnd)
           this.shapeStore.addLine(this.shapeCounter, {
-            start: currentStartPoint,
-            end: this.currentEnd
+            start: this.currentEnd,
+            end: currentStartPoint
           })
           this.shapeStore.addFinalPoint(this.shapeCounter, this.currentEnd)
           this.startPoint = this.currentEnd  // Update startPoint for next line
@@ -253,9 +263,57 @@ export default {
     setMode(type) {
       this.currentShapeType = type
       this.initializeNewShape(this.currentShapeType)
+    },
+    proceedCalculation() {
+      const cellsize = 5
+      const FullPointsforRcPoints = []
+      let FullInertia =0
+      
+      
+      console.log('Proceeding with calculation...')
+      this.shapeStore.getShapes.forEach(shape => {
+      let ll =  makeItList(shape.lineList)
+      FullPointsforRcPoints.push(...ll)        
+      })
+
+      let rotationCenter = calculateRotationCenter(FullPointsforRcPoints)
+      console.log('Rotation Center',rotationCenter)
+      
+      
+
+
+      this.shapeStore.getShapes.forEach(shape => {
+        let PartialInertia = 0
+        let gridPoints = generateGridInsideShape(shape, cellsize);
+
+        PartialInertia = calculateInertia(gridPoints,rotationCenter,cellsize)     
+        FullInertia += shape.currentMode === 'inside' ? -1*PartialInertia : PartialInertia
+        
+
+
+      })
+      console.log('Full Inertia',FullInertia)
+
+
+
+
+
+    },
+
+
+
+
+    updateCursor(event) {
+      this.cursor.x = event.clientX
+      this.cursor.y = event.clientY
+      const canvas = this.$refs.canvas
+      if (canvas) {
+        const rect = canvas.getBoundingClientRect()
+        this.cursor.relX = event.clientX - rect.left
+        this.cursor.relY = event.clientY - rect.top
+      }
     }
   }
-
 }
 </script>
 
@@ -405,5 +463,38 @@ export default {
 .mode-text {
   color: #007bff;
   text-transform: capitalize;
+}
+
+.Calculate-button:hover {
+  background: #218838;
+  border-color: #1e7e34;
+}
+
+.Proceed-button {
+  padding: 10px 20px;
+  border: 2px solid #dc3545;
+  border-radius: 5px;
+  background: #dc3545;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.Proceed-button:hover {
+  background: #c82333;
+  border-color: #bd2130;
+}
+
+.cursor-position {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background: #fff;
+  padding: 6px 12px;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  font-family: monospace;
+  z-index: 9999;
 }
 </style> 
