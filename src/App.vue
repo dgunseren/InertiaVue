@@ -5,6 +5,40 @@
       <button class="Calculate-button" @click="concludeCurrentShape">Finish Current Shape</button>
       <button class="Proceed-button" @click="proceedCalculation">Proceed Calculation</button>
     </div>
+    
+    <div class="input-panel">
+      <div class="input-group">
+        <label for="moment-input">M(Nm):</label>
+        <input type="number" id="moment-input" class="input-field" placeholder="Enter moment value(Nm)" v-model="momentStore.Moment">
+      </div>
+      
+      <div class="input-group">
+        <label for="inertia-input">I(mm^4):</label>
+        <input type="number" id="inertia-input" class="input-field" placeholder="Enter inertia value(m^4)" v-model="momentStore.Inertia">
+      </div>
+      
+      <div class="input-group">
+        <label for="distance-input">y(mm):</label>
+        <input type="number" id="distance-input" class="input-field" placeholder="Enter distance value(m)" v-model="momentStore.yDist">
+      </div>
+      
+      <div class="results-section">
+        <label>Results:</label>
+        <div class="results-display">
+          <span id="results-text">
+            <template v-if="typeof momentStore.getBendingStress === 'number' && !isNaN(momentStore.getBendingStress)">
+              Bending Stress: {{ momentStore.getBendingStress.toFixed(2) }} MPa
+            </template>
+            <template v-else>
+              No calculation performed yet
+            </template>
+
+          </span>
+        </div>
+        <button class="calculate-results-button" @click="calculateResults">Calculate</button>
+      </div>
+    </div>
+    
     <div class="mode-display">
       Current Mode: <span class="mode-text">{{ currentShapeType }}</span>
     </div>
@@ -27,6 +61,7 @@ import { useShapeStore } from './stores/Shape'
 import { generateGridInsideShape,makeItList } from './utils/grid.ts'
 import { calculateInertia,calculateRotationCenter } from './utils/inertia.ts'
 //import type { Point, Line, Shape, Polygon } from './types/geometry.ts'
+import { useMomentStore } from './stores/moment'
 
 import * as gridUtils from './utils/grid.ts'
 
@@ -68,11 +103,14 @@ export default {
       prevPoint: null,
       ctx: null,
       shapeStore: null,
-      cursor: { x: 0, y: 0, relX: 0, relY: 0 }
+      momentStore: null,
+      cursor: { x: 0, y: 0, relX: 0, relY: 0 },
+      boundingBox: { x: 0, y: 0, width: 0, height: 0 }
     }
   },
   created() {
     this.shapeStore = useShapeStore();
+    this.momentStore = useMomentStore();
   },
   mounted() {
     this.prevPoint = reactive({x: 0, y: 0})
@@ -173,13 +211,13 @@ export default {
       if (event.button === 2) { 
         console.log("right click")
         if (this.lines.length > 0) {
-          this.lines.pop()
-          this.startPoint = this.lines.length > 0 ? this.lines[this.lines.length - 1].end : { x: (event.clientX - rect.left), y: (event.clientY - rect.top) }
+          this.shapeStore.getShapes[this.shapeCounter - 1].lineList.pop()
+          //this.shapeStore.getS = this.lines.length > 0 ? this.lines[this.lines.length - 1].end : { x: (event.clientX - rect.left), y: (event.clientY - rect.top) }
           this.redraw()
           return
         }
         else {
-          this.lines.pop()
+          this.shapeStore.getShapes[this.shapeCounter - 1].lineList.pop()
           this.startPoint = { x: (event.clientX - rect.left), y: (event.clientY - rect.top) }
           this.redraw()
         }
@@ -258,7 +296,7 @@ export default {
       const midY = (p1.y + p2.y) / 2
       ctx.fillStyle = preview ? 'gray' : 'blue'
       ctx.font = '14px sans-serif'
-      ctx.fillText((length / 10).toFixed(2) + ' units', midX * this.scale + 5, midY * this.scale - 5)
+      ctx.fillText((length).toFixed(2) + ' mm', midX * this.scale + 5, midY * this.scale - 5)
     },
     setMode(type) {
       this.currentShapeType = type
@@ -276,11 +314,12 @@ export default {
       FullPointsforRcPoints.push(...ll)        
       })
 
-      let rotationCenter = calculateRotationCenter(FullPointsforRcPoints)
-      console.log('Rotation Center',rotationCenter)
+      const { center, maxes }  = calculateRotationCenter(FullPointsforRcPoints)
+      console.log('Rotation Center',center)
+      //this.boundingBox = maxes
+      this.momentStore.yDist = maxes.height
       
-      
-
+      let rotationCenter = center
 
       this.shapeStore.getShapes.forEach(shape => {
         let PartialInertia = 0
@@ -292,12 +331,8 @@ export default {
 
 
       })
+      this.momentStore.Inertia = FullInertia
       console.log('Full Inertia',FullInertia)
-
-
-
-
-
     },
 
 
@@ -312,6 +347,11 @@ export default {
         this.cursor.relX = event.clientX - rect.left
         this.cursor.relY = event.clientY - rect.top
       }
+    },
+    
+    calculateResults() {
+      // Calculate logic will be implemented here
+      console.log('Calculate button clicked')
     }
   }
 }
@@ -496,5 +536,90 @@ export default {
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
   font-family: monospace;
   z-index: 9999;
+}
+
+.input-panel {
+  position: fixed;
+  top: 140px;
+  left: 20px;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px;
+  border-radius: 8px;
+  border: 2px solid #28a745;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  min-width: 250px;
+}
+
+.input-group {
+  margin-bottom: 15px;
+}
+
+.input-group label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #333;
+  font-size: 14px;
+}
+
+.input-field {
+  display: block;
+  width: 100%;
+  margin: 5px 0;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.input-field::placeholder {
+  color: #999;
+  opacity: 1;
+}
+
+.results-section {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #ddd;
+}
+
+.results-section label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #333;
+  font-size: 14px;
+}
+
+.results-display {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 10px;
+  margin-bottom: 10px;
+  min-height: 20px;
+  font-family: monospace;
+  font-size: 12px;
+  color: #495057;
+}
+
+.calculate-results-button {
+  width: 100%;
+  padding: 10px;
+  border: 2px solid #28a745;
+  border-radius: 5px;
+  background: #28a745;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.calculate-results-button:hover {
+  background: #218838;
+  border-color: #1e7e34;
 }
 </style> 

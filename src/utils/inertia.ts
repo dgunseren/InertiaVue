@@ -40,6 +40,6 @@ export function calculateRotationCenter(gridPoints) {
     console.log('Center', center)
     
     
-    return center
+    return {center,maxes}
     
 }
