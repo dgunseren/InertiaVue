@@ -56,15 +56,24 @@ function draw() {
 
   const rectWidth = 116
   const rectHeight = 150
-  const spacingX = 60
+  const spacingX = 50
   const spacingY = 40
   const startX = 100
   const startY = 50
 
   for (let r = 0; r < rows.value; r++) {
     for (let f = 0; f < selectedAxle.value; f++) {
-      const x = startX + f * rectWidth
-      const y = startY + r * rectHeight
+      let x = startX + f * rectWidth
+      let y = startY + r * rectHeight
+
+      if (f >1){
+        x = x+spacingX
+
+
+      }
+      
+      
+
 
       // Fill with blue
       ctx.fillStyle = 'orange'
