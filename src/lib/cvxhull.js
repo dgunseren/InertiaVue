@@ -1,27 +1,11 @@
-import { useHydraulicStore } from '../stores/Hydraulic'
-import type { Point, Line, Shape } from '../types/geometry.ts'
-// @ts-ignore
-import PolyK from '../lib/polyk.js'
-// @ts-ignore
-//import ConvexHull from '../lib/cvxhull.js'
-function ConvexHullGrahamScan() {
-// @ts-ignore
-    this.anchorPoint = undefined;
-// @ts-ignore
-    this.reverse = false;
-// @ts-ignore
-    this.points = [];
-}
 ConvexHullGrahamScan.prototype = {
 
     constructor: ConvexHullGrahamScan,
-// @ts-ignore
 
     Point: function (x, y) {
         this.x = x;
         this.y = y;
     },
-// @ts-ignore
 
     _findPolarAngle: function (a, b) {
         var ONE_RADIAN = 57.295779513082;
@@ -51,7 +35,6 @@ ConvexHullGrahamScan.prototype = {
 
         return angle;
     },
-// @ts-ignore
 
     addPoint: function (x, y) {
         //Check for a new anchor
@@ -72,7 +55,6 @@ ConvexHullGrahamScan.prototype = {
 
     _sortPoints: function () {
         var self = this;
-// @ts-ignore
 
         return this.points.sort(function (a, b) {
             var polarA = self._findPolarAngle(self.anchorPoint, a);
@@ -88,7 +70,6 @@ ConvexHullGrahamScan.prototype = {
             return 0;
         });
     },
-// @ts-ignore
 
     _checkPoints: function (p0, p1, p2) {
         var difAngle;
@@ -116,7 +97,6 @@ ConvexHullGrahamScan.prototype = {
         var hullPoints = [],
             points,
             pointsLength;
-// @ts-ignore
 
         this.reverse = this.points.every(function(point){
             return (point.x < 0 && point.y < 0);
@@ -171,58 +151,3 @@ ConvexHullGrahamScan.prototype = {
         }
     }
 };
-
-
-
-// @ts-ignore
-let fullPoints = []
-// @ts-ignore
-var ConvexHullN = new ConvexHullGrahamScan()
-
-
-export function CalcCenters(id: number,store: ReturnType<typeof useHydraulicStore>) {
-    let points  = store.getPointsOfGroup(id)
-    let xSum = 0
-    let ySum = 0
-
-    points.forEach((item)=>{
-        xSum = xSum+item.x
-        ySum = ySum+item.y
-    })
-
-    xSum = xSum/points.length
-    ySum = ySum/points.length
-    //@ts-ignore
-    fullPoints.push(xSum,ySum)
-    ConvexHullN.addPoint(xSum,ySum)
-
-    store.setGroupCenter(id,{x:xSum,y:ySum})
-    if (ConvexHullN.points.length>2){
-        var hullPoints = ConvexHullN.getHull()
-        console.log('HullP',hullPoints)
-
-
-    }
-
-
-
-
-    //@ts-ignore
-    console.log('ALL POINTS',fullPoints)
-    //@ts-ignore
-    console.log('polygon',PolyK.IsSimple(fullPoints))
-    
-    let a = {x:0,y:0}
-
-    //@ts-ignore
-    if (store.h_GroupList.length >= 4 && PolyK.IsSimple(fullPoints)!) {
-        const center2 = store.getGroupCenter(2)
-        if (center2) {
-          a.x = center2.x
-          a.y = center2.y
-        }
-        store.setGroupCenter(2, { x: hullPoints[2].x, y: hullPoints[2].y })
-        store.setGroupCenter(3, { x: a.x, y: a.y })
-    }
-
-}

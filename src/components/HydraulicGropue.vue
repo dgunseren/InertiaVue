@@ -113,7 +113,7 @@ function drawHydraulicGroup() {
   const ctx = canvas.getContext('2d')
   if (!ctx) return
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height) // Optionally clear
+  //ctx.clearRect(0, 0, canvas.width, canvas.height) // Optionally clear
 
   // Collect all group centers
   const centers = hydroStore.h_GroupList
@@ -196,8 +196,8 @@ function canvasRightClick(event: MouseEvent) {
  
 
   selectedRects.value.forEach((item) =>{
-    let x = startX+ item.row*rectHeight+rectHeight*0.5
-    let y = startY+ item.col*rectWidth+rectWidth*0.5 
+    let x = startX+ item.col*rectWidth+rectWidth/2
+    let y = startY+ item.row*rectHeight+rectHeight/2
     if (item.col > 1) {
         x = x + spacingX
       }
@@ -216,8 +216,14 @@ function canvasRightClick(event: MouseEvent) {
   draw()
 }
 
+// Helper to always draw both rectangles and lines
+function drawBoth() {
+  draw();
+  drawHydraulicGroup();
+}
+
 onMounted(() => {
-  draw()
+  drawBoth();
   const canvas = canvasRef.value
   if (canvas) {
     canvas.addEventListener('click', canvasClick)
@@ -225,9 +231,10 @@ onMounted(() => {
   }
 })
 
-watch([selectedAxle, rows], draw)
+watch([selectedAxle, rows], drawBoth)
 watch([selectedAxle, rows], zeroID)
-watch([groupid], drawHydraulicGroup)
+watch([groupid], drawBoth)
+watch([groups], drawBoth)
 
 </script>
 
