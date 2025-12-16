@@ -12,7 +12,7 @@ export const useMomentStore = defineStore('moment', () => {
         const I = Number(Inertia.value)*10**-12
         const y = Number(yDist.value)*10**-3
         if (!I || isNaN(M) || isNaN(I) || isNaN(y)) return null
-        return (M * y / I)*10**-6
+        return (M * y*0.5 / I)*10**-6
       })
   
 

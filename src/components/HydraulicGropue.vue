@@ -20,7 +20,19 @@
         <label>Number of Rows:</label>
         <input type="number" min="1" v-model.number="rows" class="input-field" />
       </div>
+      <div class="input-group">
+        <label for="cg-x-input">CG X:</label>
+        <input id="cg-x-input" type="number" v-model.number="cgInputX" @change="updateCG" class="input-field" style="margin-right: 0.5rem;" />
+        <label for="cg-y-input">CG Y:</label>
+        <input id="cg-y-input" type="number" v-model.number="cgInputY" @change="updateCG" class="input-field" />
+        <span style="margin-left: 1rem;">Current CG: X: {{ cgStore.getCG().x }}, Y: {{ cgStore.getCG().y }}</span>
+      </div>
       <button @click="draw" class="calculate-results-button">Draw</button>
+    </div>
+    <!-- Single circle input form -->
+
+    <div class="cursor-position-display">
+      Cursor Position: X: {{ cursorX }}, Y: {{ cursorY }}
     </div>
     <canvas
   ref="canvasRef"
@@ -33,10 +45,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch,onBeforeMount } from 'vue'
+import { ref, onMounted, watch,onBeforeMount, onUnmounted } from 'vue'
 import { useHydraulicStore } from '../stores/Hydraulic'
+import { useCGStore } from '../stores/CG'
 import { CalcCenters } from '@/utils/centers'
 const hydroStore = useHydraulicStore()
+const cgStore = useCGStore()
 
 const axleOptions = [
   { label: '1 File', value: 1 },
@@ -53,12 +67,42 @@ const selectedRects = ref<{ row: number, col: number }[]>([])
 const groups = ref<{ color: string, rects: { row: number, col: number }[] }[]>([])
 let groupid = ref(0)
 
+// Single circle input state
+
+// Cursor position state
+const cursorX = ref(0);
+const cursorY = ref(0);
+
 // Color palette for groups
 const groupColors = [
   '#0074D9', '#FF4136', '#2ECC40', '#FF851B', '#B10DC9', '#FFDC00', '#001f3f', '#39CCCC', '#01FF70', '#F012BE', '#85144b', '#3D9970', '#111111', '#AAAAAA'
 ]
 function getNextGroupColor() {
   return groupColors[groups.value.length % groupColors.length]
+}
+
+function getRectanglesBoundingBox() {
+  const rectWidth = 140;
+  const rectHeight = 120.5;
+  const spacingX = 50;
+  const startX = 100;
+  const startY = 50;
+
+  let minX = Infinity;
+  let minY = Infinity;
+
+  for (let r = 0; r < rows.value; r++) {
+    for (let f = 0; f < selectedAxle.value; f++) {
+      let x = startX + f * rectWidth;
+      let y = startY + r * rectHeight;
+      if (f > 1) {
+        x = x + spacingX;
+      }
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+    }
+  }
+  return { minX, minY };
 }
 
 function draw() {
@@ -70,19 +114,22 @@ function draw() {
 
   ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-  const rectWidth = 150
-  const rectHeight = 116
+  const rectWidth = 140;
+  const rectHeight = 120.5;
   const spacingX = 50
   const spacingY = 40
   const startX = 100
   const startY = 50
 
+  // Calculate bounding box offset
+  const { minX, minY } = getRectanglesBoundingBox();
+
   for (let r = 0; r < rows.value; r++) {
     for (let f = 0; f < selectedAxle.value; f++) {
-      let x = startX + f * rectWidth
-      let y = startY + r * rectHeight
+      let x = startX + f * rectWidth - minX;
+      let y = startY + r * rectHeight - minY;
       if (f > 1) {
-        x = x + spacingX
+        x = x + spacingX;
       }
       // Determine color: group color if in a group, else blue if selected, else orange
       let filled = false
@@ -106,6 +153,19 @@ function draw() {
       ctx.strokeRect(x, y, rectWidth, rectHeight)
     }
   }
+
+  // Draw a single circle on the same canvas, offset by minX and minY
+
+
+  // Draw CG circle
+  const cg = cgStore.getCG();
+  ctx.beginPath();
+  ctx.arc(cg.x - minX, cg.y - minY, 10, 0, 2 * Math.PI);
+  ctx.fillStyle = 'black';
+  ctx.fill();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'white';
+  ctx.stroke();
 }
 function drawHydraulicGroup() {
   const canvas = canvasRef.value
@@ -122,13 +182,17 @@ function drawHydraulicGroup() {
 
   if (centers.length < 2) return // Need at least 2 centers to draw a line
 
+  // Offset centers by minX and minY
+  const { minX, minY } = getRectanglesBoundingBox();
+
   ctx.strokeStyle = 'black'
   ctx.lineWidth = 3
   ctx.beginPath()
-  ctx.moveTo(centers[0].x, centers[0].y)
+  ctx.moveTo(centers[0].x - minX, centers[0].y - minY)
   for (let i = 1; i < centers.length; i++) {
-    ctx.lineTo(centers[i].x, centers[i].y)
+    ctx.lineTo(centers[i].x - minX, centers[i].y - minY)
   }
+  ctx.lineTo(centers[0].x - minX, centers[0].y - minY)
   ctx.stroke()
 }
 
@@ -148,15 +212,21 @@ function canvasClick(event: MouseEvent) {
   const rectHeight = 116
   const spacingX = 50
   const spacingY = 40
-  const startX = 100
-  const startY = 50
+  const startX = 100 ;
+  const startY = 50;
+
+
+
+
+  // Calculate bounding box offset
+  const { minX, minY } = getRectanglesBoundingBox();
 
   for (let r = 0; r < rows.value; r++) {
     for (let f = 0; f < selectedAxle.value; f++) {
-      let x = startX + f * rectWidth
-      let y = startY + r * rectHeight
+      let x = startX + f * rectWidth - minX;
+      let y = startY + r * rectHeight - minY;
       if (f > 1) {
-        x = x + spacingX
+        x = x + spacingX;
       }
       if (
         mouseX >= x && mouseX <= x + rectWidth &&
@@ -185,6 +255,12 @@ function canvasRightClick(event: MouseEvent) {
   const spacingY = 40
   const startX = 100
   const startY = 50
+  //const startX = 0
+  //const startY = 0
+
+  // Calculate bounding box offset
+  const { minX, minY } = {minX:0,minY:0}
+  // getRectanglesBoundingBox();
 
   if (selectedRects.value.length > 0) {
     // Add as a new group with a unique color
@@ -196,10 +272,10 @@ function canvasRightClick(event: MouseEvent) {
  
 
   selectedRects.value.forEach((item) =>{
-    let x = startX+ item.col*rectWidth+rectWidth/2
-    let y = startY+ item.row*rectHeight+rectHeight/2
+    let x = startX+ item.col*rectWidth+rectWidth/2 - minX;
+    let y = startY+ item.row*rectHeight+rectHeight/2 - minY;
     if (item.col > 1) {
-        x = x + spacingX
+        x = x + spacingX;
       }
 
 
@@ -210,6 +286,7 @@ function canvasRightClick(event: MouseEvent) {
     console.log(groupid.value,item.row,item.col)
   })
   CalcCenters(groupid.value,hydroStore)
+  drawBoth()
 
   groupid.value = groupid.value+1
   selectedRects.value = []
@@ -228,6 +305,22 @@ onMounted(() => {
   if (canvas) {
     canvas.addEventListener('click', canvasClick)
     canvas.addEventListener('contextmenu', canvasRightClick)
+    canvas.addEventListener('mousemove', handleMouseMove)
+  }
+})
+
+function handleMouseMove(event: MouseEvent) {
+  const canvas = canvasRef.value
+  if (!canvas) return
+  const rect = canvas.getBoundingClientRect()
+  cursorX.value = event.clientX - rect.left
+  cursorY.value = event.clientY - rect.top
+}
+
+onUnmounted(() => {
+  const canvas = canvasRef.value
+  if (canvas) {
+    canvas.removeEventListener('mousemove', handleMouseMove)
   }
 })
 
@@ -235,6 +328,13 @@ watch([selectedAxle, rows], drawBoth)
 watch([selectedAxle, rows], zeroID)
 watch([groupid], drawBoth)
 watch([groups], drawBoth)
+// Watch for changes in circle input and redraw
+
+const cgInputX = ref(cgStore.getCG().x)
+const cgInputY = ref(cgStore.getCG().y)
+function updateCG() {
+  cgStore.setCG({ x: Number(cgInputX.value), y: Number(cgInputY.value) })
+}
 
 </script>
 
@@ -302,5 +402,18 @@ watch([groups], drawBoth)
   font-size: 1.5rem;
   font-weight: bold;
   margin-bottom: 1rem;
+}
+.cursor-position-display {
+  position: fixed;
+  top: 100px;
+  right: 40px;
+  background: rgba(255,255,255,0.95);
+  border: 2px solid #28a745;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 1.1rem;
+  color: #333;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 </style> 

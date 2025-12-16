@@ -184,45 +184,59 @@ export function CalcCenters(id: number,store: ReturnType<typeof useHydraulicStor
     let points  = store.getPointsOfGroup(id)
     let xSum = 0
     let ySum = 0
+    
 
     points.forEach((item)=>{
         xSum = xSum+item.x
         ySum = ySum+item.y
     })
+    console.log('points',points.length)
 
     xSum = xSum/points.length
     ySum = ySum/points.length
     //@ts-ignore
     fullPoints.push(xSum,ySum)
     ConvexHullN.addPoint(xSum,ySum)
+    console.log('xSum,ySum',xSum,ySum)
 
     store.setGroupCenter(id,{x:xSum,y:ySum})
     if (ConvexHullN.points.length>2){
         var hullPoints = ConvexHullN.getHull()
         console.log('HullP',hullPoints)
 
+        // Reset the group's points to the order returned by the convex hull
+        const group = store.h_GroupList.find(s => s.id === id)
+        if (group) {
+            group.points = hullPoints.map((p: {x: number, y: number}) => ({ x: p.x, y: p.y }))
+        }
 
+        // Set the center of each group as returned by the convex hull
+        hullPoints.forEach((p: {x: number, y: number}, idx: number) => {
+            const groupToSet = store.h_GroupList[idx];
+            if (groupToSet) {
+                store.setGroupCenter(groupToSet.id, { x: p.x, y: p.y });
+            }
+        });
     }
-
-
-
 
     //@ts-ignore
     console.log('ALL POINTS',fullPoints)
     //@ts-ignore
     console.log('polygon',PolyK.IsSimple(fullPoints))
+    console.log('YO WE REARRANGED THE POINTS = ',store.getPointsOfGroup(id))
     
     let a = {x:0,y:0}
 
     //@ts-ignore
-    if (store.h_GroupList.length >= 4 && PolyK.IsSimple(fullPoints)!) {
-        const center2 = store.getGroupCenter(2)
-        if (center2) {
-          a.x = center2.x
-          a.y = center2.y
-        }
-        store.setGroupCenter(2, { x: hullPoints[2].x, y: hullPoints[2].y })
-        store.setGroupCenter(3, { x: a.x, y: a.y })
-    }
+    //if (store.h_GroupList.length >= 4 && PolyK.IsSimple(fullPoints)!) {
+    //    const center2 = store.getGroupCenter(2)
+    //    if (center2) {
+    //      a.x = center2.x
+    //      a.y = center2.y
+    //    }
+    //    store.setGroupCenter(2, { x: hullPoints[2].x, y: hullPoints[2].y })
+    //    store.setGroupCenter(3, { x: a.x, y: a.y })
+    //}
 
 }
+
